@@ -153,6 +153,7 @@ def mcts_best_move(root_state, iterations):
         # 4. Backpropagation
         result_winner = check_win(temp_state.board)
         while node is not None:
+            # Reward based on whose turn it was to move into this state
             reward = 0
             if result_winner == 'Draw': reward = 0.5
             elif result_winner == (node.parent.state.player_turn if node.parent else 'N/A'): reward = 1
@@ -167,7 +168,7 @@ def mcts_best_move(root_state, iterations):
 class TicTacToeApp:
     def __init__(self, root):
         self.root = root
-        self.root.title("AI Comparison: 3-Piece Game")
+        self.root.title("AI Tic Tac Toe")
         self.state = gameState()
         self.time_left = timer_limit
         self.game_running = False
@@ -181,6 +182,8 @@ class TicTacToeApp:
         self.o_agent_var = tk.StringVar(value='MCT')
         self.x_ab_depth = tk.IntVar(value=5)
         self.o_ab_depth = tk.IntVar(value=5)
+        self.x_mct_iters = tk.IntVar(value=1000)
+        self.o_mct_iters = tk.IntVar(value=1000)
 
         # Trace variables to toggle UI depth visibility
         self.x_agent_var.trace_add("write", self.update_visibility)
@@ -196,6 +199,9 @@ class TicTacToeApp:
         
         self.x_depth_label = tk.Label(self.ctrl_frame, text="X Depth:")
         self.x_depth_menu = tk.OptionMenu(self.ctrl_frame, self.x_ab_depth, 2, 5, 10)
+        
+        self.x_mct_label = tk.Label(self.ctrl_frame, text="X Iters:")
+        self.x_mct_menu = tk.OptionMenu(self.ctrl_frame, self.x_mct_iters, 200, 500, 1000)
 
         # O Controls
         tk.Label(self.ctrl_frame, text="O Agent:").grid(row=1, column=0, sticky="e", pady=5)
@@ -203,6 +209,9 @@ class TicTacToeApp:
         
         self.o_depth_label = tk.Label(self.ctrl_frame, text="O Depth:")
         self.o_depth_menu = tk.OptionMenu(self.ctrl_frame, self.o_ab_depth, 2, 5, 10)
+        
+        self.o_mct_label = tk.Label(self.ctrl_frame, text="O Iters:")
+        self.o_mct_menu = tk.OptionMenu(self.ctrl_frame, self.o_mct_iters, 200, 500, 1000)
 
         self.score_label = tk.Label(root, text="X Wins: 0 | O Wins: 0 | Draws: 0", font=self.label_font, fg="darkblue")
         self.score_label.pack(pady=5)
@@ -226,21 +235,39 @@ class TicTacToeApp:
         self.start_btn.pack(pady=10)
 
     def update_visibility(self, *args):
-        # Handle X Depth visibility
+        # Handle X settings visibility
         if self.x_agent_var.get() == 'AB':
             self.x_depth_label.grid(row=0, column=2, sticky="e")
             self.x_depth_menu.grid(row=0, column=3, padx=5)
+            self.x_mct_label.grid_remove()
+            self.x_mct_menu.grid_remove()
+        elif self.x_agent_var.get() == 'MCT':
+            self.x_mct_label.grid(row=0, column=2, sticky="e")
+            self.x_mct_menu.grid(row=0, column=3, padx=5)
+            self.x_depth_label.grid_remove()
+            self.x_depth_menu.grid_remove()
         else:
             self.x_depth_label.grid_remove()
             self.x_depth_menu.grid_remove()
+            self.x_mct_label.grid_remove()
+            self.x_mct_menu.grid_remove()
 
-        # Handle O Depth visibility
+        # Handle O settings visibility
         if self.o_agent_var.get() == 'AB':
             self.o_depth_label.grid(row=1, column=2, sticky="e")
             self.o_depth_menu.grid(row=1, column=3, padx=5)
+            self.o_mct_label.grid_remove()
+            self.o_mct_menu.grid_remove()
+        elif self.o_agent_var.get() == 'MCT':
+            self.o_mct_label.grid(row=1, column=2, sticky="e")
+            self.o_mct_menu.grid(row=1, column=3, padx=5)
+            self.o_depth_label.grid_remove()
+            self.o_depth_menu.grid_remove()
         else:
             self.o_depth_label.grid_remove()
             self.o_depth_menu.grid_remove()
+            self.o_mct_label.grid_remove()
+            self.o_mct_menu.grid_remove()
 
     def start_match(self):
         self.state = gameState()
@@ -285,7 +312,8 @@ class TicTacToeApp:
             depth = self.x_ab_depth.get() if player == 'X' else self.o_ab_depth.get()
             move = get_ab_move(self.state, player, depth)
         elif agent == 'MCT':
-            move = mcts_best_move(self.state, mct_iterations)
+            iters = self.x_mct_iters.get() if player == 'X' else self.o_mct_iters.get()
+            move = mcts_best_move(self.state, iters)
 
         if move is not None:
             self.state = apply_move(self.state, move, player)
